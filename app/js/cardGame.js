@@ -1,187 +1,187 @@
-// Función que devuelve el path de una imagen de carta de manera aleatoria
-function getRandomPathImg() {
-    let random = Math.floor(Math.random() * 20) + 1;
-    if (random < 10) {
-        return `./img/card/robot_0${random}.png`;
-    }
-    return `./img/card/robot_${random}.png`;
-}
-
-// Clase Jugador
-class Jugador {
-    constructor(nombre) {
-        this.nombre = nombre;
-        this.eliminado = false;
-        this.cartas = [];
+// Clase para el juego de cartas
+class CardGame {
+    constructor() {
+        this.jugadores = [
+            { id: 1, numCartas: 0, puntos: 0, saltoTurno: 0, desactivacion: 0, cartas: [], cartaRobada: false },
+            { id: 2, numCartas: 0, puntos: 0, saltoTurno: 0, desactivacion: 0, cartas: [], cartaRobada: false },
+            { id: 3, numCartas: 0, puntos: 0, saltoTurno: 0, desactivacion: 0, cartas: [], cartaRobada: false }
+        ];
+        this.baraja = [];
+        this.cartaActual = null;
+        this.turnoActual = 0;
     }
 
-    // Gasta una carta de desactivación
-    gastarCartaDesactivacion() {
-        const index = this.cartas.findIndex(carta => carta.tipo === 'Desactivación');
-        if (index !== -1) {
-            this.cartas.splice(index, 1); // Elimina la carta de desactivación
+    // Inicializar el juego
+    init() {
+        this.crearBaraja();
+        this.repartirCartas();
+        this.actualizarEstadisticas();
+    }
+
+    // Crear la baraja de cartas
+    crearBaraja() {
+        // Crear cartas de bomba
+        for (let i = 0; i < 6; i++) {
+            this.baraja.push({ tipo: "Bomba" });
+        }
+        // Crear cartas de desactivación
+        for (let i = 0; i < 6; i++) {
+            this.baraja.push({ tipo: "Desactivacion" });
+        }
+        // Crear cartas de saltar turno
+        for (let i = 0; i < 10; i++) {
+            this.baraja.push({ tipo: "Saltar turno" });
+        }
+        // Crear cartas de puntos con valores del 1 al 10
+        for (let i = 1; i <= 33; i++) {
+            let valor = (i % 10) + 1; // Crea un valor de 1 a 10 en bucle
+            this.baraja.push({ tipo: "Puntos", valor: valor });
+        }
+        // Mezcla la baraja
+        this.baraja.sort(() => Math.random() - 0.5);
+    }
+
+    // Repartir cartas a los jugadores
+    repartirCartas() {
+        for (let jugador of this.jugadores) {
+            jugador.numCartas = 5;
+            jugador.cartas = [];
+            for (let i = 0; i < 5; i++) {
+                jugador.cartas.push(this.baraja.shift());
+            }
         }
     }
 
-    // Gasta una carta de saltar turno
-    gastarCartaSaltarTurno() {
-        const index = this.cartas.findIndex(carta => carta.tipo === 'Saltar turno');
-        if (index !== -1) {
-            this.cartas.splice(index, 1); // Elimina la carta de saltar turno
-        }
+    // Actualizar estadísticas del jugador actual
+    actualizarEstadisticas() {
+        let jugadorActual = this.jugadores[this.turnoActual];
+        document.getElementById(`J${jugadorActual.id}NumCartas`).innerHTML = `⚪️ Número de cartas: ${jugadorActual.numCartas}`;
+        document.getElementById(`J${jugadorActual.id}Puntos`).innerHTML = `⚪️ Puntos totales: ${jugadorActual.puntos}`;
+        document.getElementById(`J${jugadorActual.id}saltoTurno`).innerHTML = `⚪️ Cartas salto turno: ${jugadorActual.saltoTurno}`;
+        document.getElementById(`J${jugadorActual.id}Desactivacion`).innerHTML = `⚪️ Cartas desactivación: ${jugadorActual.desactivacion}`;
     }
 
-    // Calcula los puntos totales del jugador sumando las cartas de puntos
-    getPuntosTotales() {
-        return this.cartas
-            .filter(carta => carta.tipo === 'Puntos')
-            .reduce((total, carta) => total + carta.valor, 0);
-    }
-}
-
-// Crear jugadores
-const jugadores = [
-    new Jugador("Jugador 1"),
-    new Jugador("Jugador 2"),
-    new Jugador("Jugador 3")
-];
-
-// Variables del juego
-let mazo = [];
-let turnoActual = 0;
-
-// Función para iniciar el juego
-function iniciarJuego() {
-    mazo = generarMazo();
-    mezclarMazo(mazo);
-    actualizarInterfaz();
-}
-
-// Generar el mazo con las cartas especificadas
-function generarMazo() {
-    let mazo = [];
-    
-    // Añadir cartas Bomba
-    for (let i = 0; i < 6; i++) {
-        mazo.push({ tipo: 'Bomba' });
-    }
-
-    // Añadir cartas Desactivación
-    for (let i = 0; i < 6; i++) {
-        mazo.push({ tipo: 'Desactivación' });
-    }
-
-    // Añadir cartas Saltar Turno
-    for (let i = 0; i < 10; i++) {
-        mazo.push({ tipo: 'Saltar turno' });
-    }
-
-    // Añadir cartas Puntos con valores entre 1 y 10
-    for (let i = 0; i < 33; i++) {
-        let valor = Math.floor(Math.random() * 10) + 1;
-        mazo.push({ tipo: 'Puntos', valor: valor });
-    }
-
-    return mazo;
-}
-
-// Función para mezclar el mazo con el algoritmo de Fisher-Yates
-function mezclarMazo(mazo) {
-    for (let i = mazo.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [mazo[i], mazo[j]] = [mazo[j], mazo[i]];
-    }
-}
-
-// Función para que un jugador robe una carta
-function robarCarta() {
-    if (jugadores[turnoActual].eliminado) return;
-
-    if (mazo.length === 0) {
-        alert("No hay cartas en el mazo.");
-        verificarGanador();
-        return;
-    }
-
-    const carta = mazo.pop();
-    jugadores[turnoActual].cartas.push(carta);
-    document.getElementById('imgCartaRobada').src = getRandomPathImg();
-
-    // Si la carta es una bomba y no tiene desactivador, el jugador es eliminado
-    if (carta.tipo === 'Bomba') {
-        if (jugadores[turnoActual].cartas.some(carta => carta.tipo === 'Desactivación')) {
-            jugadores[turnoActual].gastarCartaDesactivacion();
-            descartarCarta('Bomba', 'Desactivación');
+    // Robar carta
+    robarCarta() {
+        if (this.baraja.length > 0) {
+            this.cartaActual = this.baraja.shift();
+            this.jugadores[this.turnoActual].cartas.push(this.cartaActual);
+            this.jugadores[this.turnoActual].numCartas++;
+            this.jugadores[this.turnoActual].cartaRobada = true; // Marcar que se ha robado una carta
+            // Actualizar puntos totales
+            if (this.cartaActual.tipo === "Puntos") {
+                this.jugadores[this.turnoActual].puntos += this.cartaActual.valor;
+            }
+            // Actualizar cartas salto turno
+            if (this.cartaActual.tipo === "Saltar turno") {
+                this.jugadores[this.turnoActual].saltoTurno++;
+            }
+            // Actualizar cartas desactivación
+            if (this.cartaActual.tipo === "Desactivacion") {
+                this.jugadores[this.turnoActual].desactivacion++;
+            }
+            this.actualizarEstadisticas();
         } else {
-            jugadores[turnoActual].eliminado = true;
-            alert(`${jugadores[turnoActual].nombre} ha sido eliminado por una bomba.`);
+            alert("No hay más cartas en la baraja.");
         }
     }
 
-    actualizarInterfaz();
-    pasarTurno();
-}
+    // Pasar turno
+    pasarTurno() {
+        // Antes de pasar el turno, verificamos si se ha robado una carta
+        let jugadorActual = this.jugadores[this.turnoActual];
+        if (!jugadorActual.cartaRobada) {
+            alert("No puedes pasar el turno si no has robado una carta.");
+            return; // Salir de la función si no se ha robado carta
+        }
 
-// Función para descartar cartas
-function descartarCarta(cartaTipo1, cartaTipo2) {
-    const listaDescarte = document.getElementById('listaDescarte');
-    const nuevoElemento = document.createElement('li');
-    nuevoElemento.textContent = `Carta ${cartaTipo1} y ${cartaTipo2} descartadas`;
-    listaDescarte.appendChild(nuevoElemento);
-}
+        this.turnoActual = (this.turnoActual + 1) % this.jugadores.length; // Cambia al siguiente jugador
+        alert(`Es el turno del jugador ${this.jugadores[this.turnoActual].id}`); // Notifica qué jugador es el actual
+        // Reiniciar cartaRobada para el siguiente jugador
+        this.jugadores[this.turnoActual].cartaRobada = false; 
+        this.actualizarEstadisticas(); // Actualiza las estadísticas del nuevo jugador
+    }
 
-// Función para pasar turno
-function pasarTurno() {
-    do {
-        turnoActual = (turnoActual + 1) % jugadores.length;
-    } while (jugadores[turnoActual].eliminado); // Saltar jugadores eliminados
+    // Gastar cartas desactivar
+    gastarCartasDesactivar() {
+        let jugadorActual = this.jugadores[this.turnoActual];
+        if (jugadorActual.desactivacion > 0) {
+            jugadorActual.desactivacion--;
+            jugadorActual.puntos += 10;
+            this.actualizarEstadisticas();
+            alert("Se ha gastado una carta de desactivación");
+        } else {
+            alert("No tienes cartas de desactivación para gastar");
+        }
+    }
 
-    actualizarInterfaz();
-}
+    // Gastar cartas salto turno
+    gastarCartasSaltarTurno() {
+        let jugadorActual = this.jugadores[this.turnoActual];
+        // Verificar si se ha robado una carta
+        if (!jugadorActual.cartaRobada) {
+            alert("No puedes saltar el turno si no has robado una carta.");
+            return; // Salir de la función si no se ha robado carta
+        }
+        if (jugadorActual.saltoTurno > 0) {
+            jugadorActual.saltoTurno--;
+            jugadorActual.cartaRobada = false; // Resetear la carta robada al usar la carta de salto
+            this.pasarTurno(); // Llamar a pasarTurno() después de gastar la carta
+            this.actualizarEstadisticas();
+            alert("Se ha gastado una carta de salto turno");
+        } else {
+            alert("No tienes cartas de salto turno para gastar");
+        }
+    }
 
-// Función para verificar el ganador
-function verificarGanador() {
-    const jugadoresVivos = jugadores.filter(jugador => !jugador.eliminado);
-    if (jugadoresVivos.length === 1) {
-        alert(`${jugadoresVivos[0].nombre} es el ganador!`);
-        mostrarBotonReiniciar();
-    } else if (mazo.length === 0) {
-        let ganador = jugadoresVivos.reduce((prev, curr) => prev.getPuntosTotales() > curr.getPuntosTotales() ? prev : curr);
-        alert(`${ganador.nombre} ha ganado con ${ganador.getPuntosTotales()} puntos!`);
-        mostrarBotonReiniciar();
+    // Obtener puntos totales
+    getPuntos() {
+        let puntosTotales = 0;
+        for (let jugador of this.jugadores) {
+            puntosTotales += jugador.puntos;
+        }
+        return puntosTotales;
+    }
+
+    // Comprobar si el juego ha terminado
+    comprobarFinJuego() {
+        let puntosTotales = this.getPuntos();
+        if (puntosTotales >= 100) {
+            alert("El juego ha terminado. El jugador con más puntos ha ganado");
+            return true;
+        }
+        return false;
     }
 }
 
-// Función para mostrar el botón de reinicio
-function mostrarBotonReiniciar() {
-    document.getElementById('btnRobar').style.display = 'none';
-    const btnReiniciar = document.createElement('button');
-    btnReiniciar.textContent = 'Jugar de nuevo';
-    btnReiniciar.onclick = reiniciarJuego;
-    document.body.appendChild(btnReiniciar);
-}
+// Instanciar el juego
+let juego = new CardGame();
+juego.init();
 
-// Función para reiniciar el juego
-function reiniciarJuego() {
-    mazo = [];
-    turnoActual = 0;
-    jugadores.forEach(jugador => {
-        jugador.eliminado = false;
-        jugador.cartas = [];
-    });
-    iniciarJuego();
-}
+// Agregar evento de click al botón de robar carta
+document.getElementById("btnRobar").addEventListener("click", function() {
+    juego.robarCarta();
+});
 
-// Función para actualizar la interfaz
-function actualizarInterfaz() {
-    for (let i = 0; i < jugadores.length; i++) {
-        document.getElementById(`J${i + 1}NumCartas`).textContent = `⚪️ Número de cartas: ${jugadores[i].cartas.length}`;
-        document.getElementById(`J${i + 1}Puntos`).textContent = `⚪️ Puntos totales: ${jugadores[i].getPuntosTotales()}`;
+// Agregar evento de click al botón de pasar turno
+document.getElementById("btnPasar").addEventListener("click", function() {
+    juego.pasarTurno();
+});
+
+// Agregar evento de click al botón de gastar cartas desactivar
+document.getElementById("btnGastarDesactivar").addEventListener("click", function() {
+    juego.gastarCartasDesactivar();
+});
+
+// Agregar evento de click al botón de gastar cartas salto turno
+document.getElementById("btnGastarSaltarTurno").addEventListener("click", function() {
+    juego.gastarCartasSaltarTurno();
+});
+
+// Comprobar si el juego ha terminado cada segundo
+setInterval(function() {
+    if (juego.comprobarFinJuego()) {
+        // Reiniciar el juego
+        juego.init();
     }
-}
-
-// Event listeners para los botones
-document.getElementById('btnRobar').addEventListener('click', robarCarta);
-
-// Iniciar el juego al cargar la página
-iniciarJuego();
+}, 1000);
