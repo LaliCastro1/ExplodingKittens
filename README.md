@@ -66,3 +66,7 @@ El objetivo del juego es ser el último jugador que quede sin explotar.
     - Git: https://github.com/brodriguezp09
 - David Elías Martín.
     - Git:  https://github.com/Elias-MN
+
+
+
+
