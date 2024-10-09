@@ -1,10 +1,22 @@
-function getRandomPathImg() {
-    let random = Math.floor(Math.random() * 20) + 1;
-    if (random < 10) {
-        return `./img/card/robot_0${random}.png`;
+function getRandomPathImg(tipoCarta) {
+    if (tipoCarta === "robot") {
+        let random = Math.floor(Math.random() * 20) + 1;
+        return random < 10 ? `./img/card/robot_0${random}.png` : `./img/card/robot_${random}.png`;
     }
-    return `./img/card/robot_${random}.png`;
+
+    if (tipoCarta === "bomba") {
+        return './img/bomba/bomba.png'; 
+    }
+    if (tipoCarta === "desactivacion") {
+        return './img/herramienta/herramienta.png'; 
+    }
+    if (tipoCarta === "saltar turno") {
+        return './img/pasarTurno/pasarTurno.png';
+    }
+
+    return null; 
 }
+
 
 class CardGame {
     constructor() {
@@ -25,21 +37,31 @@ class CardGame {
     }
 
     crearBaraja() {
+        // Añadir cartas de bomba
         for (let i = 0; i < 6; i++) {
             this.baraja.push({ tipo: "Bomba" });
         }
+
+        // Añadir cartas de desactivación
         for (let i = 0; i < 6; i++) {
             this.baraja.push({ tipo: "Desactivacion" });
         }
+
+        // Añadir cartas de saltar turno
         for (let i = 0; i < 10; i++) {
             this.baraja.push({ tipo: "Saltar turno" });
         }
-        for (let i = 1; i <= 33; i++) {
-            let valor = (i % 10) + 1; 
+
+        // Añadir cartas de puntos (33 cartas)
+        for (let i = 0; i < 33; i++) {
+            let valor = Math.floor(Math.random() * 10) + 1; // Genera un valor aleatorio entre 1 y 10
             this.baraja.push({ tipo: "Puntos", valor: valor });
         }
+
+        // Barajar la baraja
         this.baraja.sort(() => Math.random() - 0.5);
     }
+
 
     repartirCartas() {
         for (let jugador of this.jugadores) {
@@ -60,29 +82,36 @@ class CardGame {
     }
     eliminarJugador(indice) {
         let jugadorEliminado = this.jugadores[indice];
-        
+    
         // Mover todas las cartas del jugador eliminado a la pila de descarte
         for (let carta of jugadorEliminado.cartas) {
             this.descartarCarta(carta.tipo);
         }
-        
+    
         let h2JugadorEliminado = document.getElementById(`J${jugadorEliminado.id}Nombre`);
         if (h2JugadorEliminado) {
             h2JugadorEliminado.style.color = "red";
         }
-        
+    
         this.jugadores.splice(indice, 1);
         
+        // Ajustar el turno actual
         if (this.turnoActual >= this.jugadores.length) {
             this.turnoActual = 0; 
         }
-        
+    
         // Si queda un solo jugador, este gana y se finaliza el juego
         if (this.jugadores.length === 1) {
             alert(`¡El jugador ${this.jugadores[0].id} ha ganado la partida!`);
             this.mostrarBotonReiniciar(); // Llama a la función para cambiar los botones
+        } else {
+            // Verificar si el jugador actual sigue en el juego
+            if (!this.jugadores[this.turnoActual]) {
+                this.turnoActual = (this.turnoActual + 1) % this.jugadores.length; // Pasar al siguiente jugador
+            }
         }
     }
+    
 
     mostrarBotonReiniciar() {
         // Elimina el botón "Pasar Turno"
@@ -154,51 +183,55 @@ class CardGame {
         listaDescarte.appendChild(nuevaCarta);
     }
     
-robarCarta() {
-    if (this.baraja.length > 0) {
-        this.cartaActual = this.baraja.shift();
-        this.jugadores[this.turnoActual].cartas.push(this.cartaActual);
-        this.jugadores[this.turnoActual].numCartas++;
-        this.jugadores[this.turnoActual].cartaRobada = true; 
+    robarCarta() {
+        if (this.baraja.length > 0) {
+            this.cartaActual = this.baraja.shift(); // Roba la carta superior de la baraja
+            this.jugadores[this.turnoActual].cartas.push(this.cartaActual);
+            this.jugadores[this.turnoActual].numCartas++;
+            this.jugadores[this.turnoActual].cartaRobada = true;
 
-      
-        if (this.cartaActual.tipo === "Puntos") {
-            this.jugadores[this.turnoActual].puntos += this.cartaActual.valor;
+            // Asignar puntos o efectos según el tipo de carta
+            switch (this.cartaActual.tipo) {
+                case "Puntos":
+                    this.jugadores[this.turnoActual].puntos += this.cartaActual.valor;
+                    break;
+                case "Saltar turno":
+                    this.jugadores[this.turnoActual].saltoTurno++;
+                    break;
+                case "Desactivacion":
+                    this.jugadores[this.turnoActual].desactivacion++;
+                    break;
+                case "Bomba":
+                    this.comprobarBomba();
+                    break;
+            }
+
+            // Obtener la imagen según el tipo de carta
+            let imgCartaRobada = document.getElementById('imgCartaRobada');
+            imgCartaRobada.src = getRandomPathImg(this.cartaActual.tipo.toLowerCase());
+            imgCartaRobada.style.display = 'block'; // Mostrar la imagen
+
+            this.actualizarEstadisticas();
+            this.pasarTurno();
+        } else {
+            alert("No hay más cartas en la baraja.");
         }
-      
-        if (this.cartaActual.tipo === "Saltar turno") {
-            this.jugadores[this.turnoActual].saltoTurno++;
-        }
-       
-        if (this.cartaActual.tipo === "Desactivacion") {
-            this.jugadores[this.turnoActual].desactivacion++;
-        }
-
-        if (this.cartaActual.tipo === "Bomba") {
-            this.comprobarBomba();
-        }
-        
-
-       
-        let imgCartaRobada = document.getElementById('imgCartaRobada');
-        imgCartaRobada.src = `img/cartas/${this.cartaActual.tipo.toLowerCase()}.png`;
-        imgCartaRobada.style.display = 'block'; 
-
-        this.actualizarEstadisticas();
-
-   
-        this.pasarTurno();
-    } else {
-        alert("No hay más cartas en la baraja.");
     }
-}
+    
 
 
 pasarTurno() {
+    if (this.jugadores.length === 0) {
+        alert("No hay jugadores en el juego.");
+        return;
+    }
+
     let jugadorActual = this.jugadores[this.turnoActual];
 
     if (this.baraja.length === 0) {
         alert("¡Se han acabado las cartas de la baraja!");
+        this.declararGanador(); // Llama a la función para declarar el ganador
+        return; 
     }
 
     if (jugadorActual.saltoTurno > 0 && !jugadorActual.cartaRobada) {
@@ -224,6 +257,23 @@ pasarTurno() {
     this.actualizarEstadisticas();  
 }
 
+
+
+declararGanador() {
+    if (this.jugadores.length > 1) {
+        let maxPuntos = Math.max(...this.jugadores.map(j => j.puntos));
+        let ganadores = this.jugadores.filter(j => j.puntos === maxPuntos);
+        
+        if (ganadores.length === 1) {
+            alert(`¡El jugador ${ganadores[0].id} ha ganado la partida por tener más puntos!`);
+        } else {
+            alert(`¡Es un empate entre los jugadores ${ganadores.map(g => g.id).join(', ')}!`);
+        }
+    }
+}
+
+
+
 resaltarTurnoJugador() {
     for (let jugador of this.jugadores) {
         let h2Jugador = document.getElementById(`J${jugador.id}Nombre`);
@@ -236,7 +286,10 @@ resaltarTurnoJugador() {
     if (h2JugadorActual) {
         h2JugadorActual.style.color = "yellow"; 
     }
+
+    
 }
+
 
 
     gastarCartasDesactivar() {
