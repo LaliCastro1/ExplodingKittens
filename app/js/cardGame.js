@@ -61,21 +61,61 @@ class CardGame {
     eliminarJugador(indice) {
         let jugadorEliminado = this.jugadores[indice];
         
+        // Mover todas las cartas del jugador eliminado a la pila de descarte
+        for (let carta of jugadorEliminado.cartas) {
+            this.descartarCarta(carta.tipo);
+        }
+        
         let h2JugadorEliminado = document.getElementById(`J${jugadorEliminado.id}Nombre`);
         if (h2JugadorEliminado) {
             h2JugadorEliminado.style.color = "red";
         }
-    
-        this.jugadores.splice(indice, 1);  
+        
+        this.jugadores.splice(indice, 1);
         
         if (this.turnoActual >= this.jugadores.length) {
             this.turnoActual = 0; 
         }
-    
+        
+        // Si queda un solo jugador, este gana y se finaliza el juego
         if (this.jugadores.length === 1) {
             alert(`¡El jugador ${this.jugadores[0].id} ha ganado la partida!`);
+            this.mostrarBotonReiniciar(); // Llama a la función para cambiar los botones
         }
     }
+
+    mostrarBotonReiniciar() {
+        // Elimina el botón "Pasar Turno"
+        let btnPasar = document.getElementById("btnPasar");
+        if (btnPasar) {
+            btnPasar.remove();
+        }
+        
+        // Crea el botón "Reiniciar Juego"
+        let contenedorAcciones = document.getElementById("contenedorAcciones");
+        let btnReiniciar = document.createElement("button");
+        btnReiniciar.id = "btnReiniciar";
+        btnReiniciar.textContent = "Reiniciar Juego";
+        btnReiniciar.classList.add("btnAccion");
+        contenedorAcciones.appendChild(btnReiniciar);
+        
+        // Añade el evento de reinicio
+        btnReiniciar.addEventListener("click", () => {
+            this.reiniciarJuego();
+        });
+    }
+    reiniciarJuego() {
+        // Elimina el botón de "Reiniciar Juego"
+        let btnReiniciar = document.getElementById("btnReiniciar");
+        if (btnReiniciar) {
+            btnReiniciar.remove();
+        }
+    
+        // Reinicia el juego
+        location.reload();
+    }
+    
+    
     
     
 
@@ -84,33 +124,36 @@ class CardGame {
     
         if (this.cartaActual.tipo === "Bomba") {
             if (jugadorActual.desactivacion > 0) {
+                // Usar una carta de desactivación
                 jugadorActual.desactivacion--;  
                 alert(`¡Bomba desactivada! El jugador ${jugadorActual.id} ha usado una carta de desactivación.`);
-    
+                
+                // Descartar la carta de bomba y la carta de desactivación
                 this.descartarCarta('Bomba');
-    
                 this.descartarCarta('Desactivacion');
+    
             } else {
+                // El jugador no tiene desactivación, es eliminado
                 alert(`¡Bomba! El jugador ${jugadorActual.id} ha explotado y ha sido eliminado.`);
+                
+                // Descartar la carta de bomba antes de eliminar al jugador
+                this.descartarCarta('Bomba');
                 this.eliminarJugador(this.turnoActual); 
             }
         }
     }
     
-descartarCarta(tipoCarta) {
-    const listaDescarte = document.getElementById('listaDescarte');
-    if (tipoCarta === 'Bomba' || tipoCarta === 'Desactivación') {
+    descartarCarta(tipoCarta) {
+        const listaDescarte = document.getElementById('listaDescarte');
+        
+        // Crear el elemento de carta descartada
         const nuevaCarta = document.createElement('li');
         nuevaCarta.textContent = `Carta ${tipoCarta}`;
+        
+        // Añadir la carta a la lista de descarte
         listaDescarte.appendChild(nuevaCarta);
     }
-}
-
-
-
-
-
-
+    
 robarCarta() {
     if (this.baraja.length > 0) {
         this.cartaActual = this.baraja.shift();
